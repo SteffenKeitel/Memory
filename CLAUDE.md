@@ -35,11 +35,13 @@ python server.py
 
 Data is stored relative to `cwd` at `.claude/memory/` (chroma/ + facts.db), giving per-project isolation.
 
-## Repository
+## Repository & Deploy
 
 - Remote: https://github.com/SteffenKeitel/Memory
 - Branch: `main`
 - `.gitignore` excludes: `.claude/memory/`, `.claude/settings.local.json`, `.venv/`, `__pycache__/`
+- **Productive path**: `~/.claude/mcp-memory/server.py` (this is what Claude Code actually runs)
+- **Deploy**: `cp server.py ~/.claude/mcp-memory/server.py` — changes take effect on next Claude Code session
 
 ## Key Details
 
