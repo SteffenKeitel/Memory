@@ -56,3 +56,13 @@ Der Server legt seine Daten relativ zum Arbeitsverzeichnis an:
 ```
 
 Jedes Projekt bekommt so seinen eigenen, isolierten Speicher.
+
+## Deploy
+
+Der produktive Server liegt unter `~/.claude/mcp-memory/server.py`. Nach Änderungen im Repo:
+
+```bash
+cp server.py ~/.claude/mcp-memory/server.py
+```
+
+Änderungen werden ab der nächsten Claude-Code-Session wirksam.
