@@ -82,15 +82,24 @@ def memory_search(query: str, n_results: int = 5) -> str:
     if total == 0:
         return "Keine Erinnerungen vorhanden."
     n = min(n_results, total)
-    results = collection.query(query_texts=[query], n_results=n)
+    results = collection.query(query_texts=[query], n_results=n, include=["documents", "distances", "metadatas"])
     docs = results.get("documents", [[]])[0]
     distances = results.get("distances", [[]])[0]
+    metadatas = results.get("metadatas", [[]])[0]
     if not docs:
         return "Keine passenden Erinnerungen gefunden."
     lines = []
-    for i, (doc, dist) in enumerate(zip(docs, distances), 1):
+    for i, (doc, dist, meta) in enumerate(zip(docs, distances, metadatas), 1):
         similarity = 1 - dist
-        lines.append(f"{i}. [{similarity:.0%}] {doc}")
+        stored_at = meta.get("stored_at", "")
+        timestamp = ""
+        if stored_at:
+            try:
+                dt = datetime.strptime(stored_at, "%Y%m%dT%H%M%S%f")
+                timestamp = f" [{dt.strftime('%Y-%m-%d %H:%M')}]"
+            except ValueError:
+                pass
+        lines.append(f"{i}. [{similarity:.0%}]{timestamp} {doc}")
     return "\n".join(lines)
 
 

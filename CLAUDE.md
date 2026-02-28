@@ -35,6 +35,12 @@ python server.py
 
 Data is stored relative to `cwd` at `.claude/memory/` (chroma/ + facts.db), giving per-project isolation.
 
+## Repository
+
+- Remote: https://github.com/SteffenKeitel/Memory
+- Branch: `main`
+- `.gitignore` excludes: `.claude/memory/`, `.claude/settings.local.json`, `.venv/`, `__pycache__/`
+
 ## Key Details
 
 - Language: German (docstrings, tool descriptions, user-facing messages)
