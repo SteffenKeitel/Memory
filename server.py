@@ -30,6 +30,10 @@ collection = chroma_client.get_or_create_collection(
     name="memories",
     metadata={"hnsw:space": "cosine"},
 )
+sessions_collection = chroma_client.get_or_create_collection(
+    name="sessions",
+    metadata={"hnsw:space": "cosine"},
+)
 
 # ---------------------------------------------------------------------------
 # SQLite
@@ -42,6 +46,10 @@ def _get_db() -> sqlite3.Connection:
     conn.execute(
         "CREATE TABLE IF NOT EXISTS facts "
         "(key TEXT PRIMARY KEY, value TEXT, updated_at TEXT)"
+    )
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS sessions "
+        "(id TEXT PRIMARY KEY, summary TEXT, project TEXT, created_at TEXT)"
     )
     conn.commit()
     return conn
@@ -147,6 +155,102 @@ def facts_list() -> str:
     if not rows:
         return "Keine Fakten gespeichert."
     lines = [f"- {key} = {value} ({updated_at})" for key, value, updated_at in rows]
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Session-Summary Tools
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+def session_save(summary: str, project: str = "") -> str:
+    """Session-Zusammenfassung speichern (SQLite + Vektorsuche).
+
+    Args:
+        summary: Zusammenfassung der Session (was wurde gemacht, Entscheidungen, offene Punkte).
+        project: Optionaler Projektname.
+    """
+    doc_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+    db = _get_db()
+    db.execute(
+        "INSERT INTO sessions (id, summary, project, created_at) VALUES (?, ?, ?, ?)",
+        (doc_id, summary, project, doc_id),
+    )
+    db.commit()
+    db.close()
+    sessions_collection.add(
+        documents=[summary],
+        ids=[doc_id],
+        metadatas=[{"project": project, "created_at": doc_id}],
+    )
+    return f"Session-Summary gespeichert (id={doc_id})."
+
+
+@mcp.tool()
+def session_list(n: int = 10) -> str:
+    """Letzte Session-Summaries chronologisch auflisten.
+
+    Args:
+        n: Anzahl der letzten Sessions (Standard: 10).
+    """
+    db = _get_db()
+    rows = db.execute(
+        "SELECT id, summary, project, created_at FROM sessions ORDER BY created_at DESC LIMIT ?",
+        (n,),
+    ).fetchall()
+    db.close()
+    if not rows:
+        return "Keine Session-Summaries vorhanden."
+    lines = []
+    for sid, summary, project, created_at in rows:
+        timestamp = ""
+        try:
+            dt = datetime.strptime(created_at, "%Y%m%dT%H%M%S%f")
+            timestamp = dt.strftime("%Y-%m-%d %H:%M")
+        except ValueError:
+            timestamp = created_at
+        prefix = f"[{timestamp}]"
+        if project:
+            prefix += f" [{project}]"
+        lines.append(f"{prefix} {summary}")
+    return "\n".join(lines)
+
+
+@mcp.tool()
+def session_search(query: str, n_results: int = 5) -> str:
+    """Semantische Suche über Session-Summaries.
+
+    Args:
+        query: Suchbegriff oder Frage.
+        n_results: Maximale Anzahl Ergebnisse (Standard: 5).
+    """
+    total = sessions_collection.count()
+    if total == 0:
+        return "Keine Session-Summaries vorhanden."
+    n = min(n_results, total)
+    results = sessions_collection.query(
+        query_texts=[query], n_results=n, include=["documents", "distances", "metadatas"]
+    )
+    docs = results.get("documents", [[]])[0]
+    distances = results.get("distances", [[]])[0]
+    metadatas = results.get("metadatas", [[]])[0]
+    if not docs:
+        return "Keine passenden Session-Summaries gefunden."
+    lines = []
+    for i, (doc, dist, meta) in enumerate(zip(docs, distances, metadatas), 1):
+        similarity = 1 - dist
+        created_at = meta.get("created_at", "")
+        project = meta.get("project", "")
+        timestamp = ""
+        if created_at:
+            try:
+                dt = datetime.strptime(created_at, "%Y%m%dT%H%M%S%f")
+                timestamp = f" [{dt.strftime('%Y-%m-%d %H:%M')}]"
+            except ValueError:
+                pass
+        proj_tag = f" [{project}]" if project else ""
+        lines.append(f"{i}. [{similarity:.0%}]{timestamp}{proj_tag} {doc}")
     return "\n".join(lines)
 
 

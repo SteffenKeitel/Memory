@@ -25,3 +25,9 @@ Diese Regeln sind verbindlich und gelten in jeder Session, für jedes Projekt.
 ## 5. Pläne immer in Memory speichern
 - Jeden genehmigten Implementierungsplan per `memory_store` speichern (komprimiert: Ziel, Ansatz, betroffene Dateien, Entscheidungen).
 - Nach Umsetzung den Plan-Eintrag mit dem Ergebnis ergänzen oder einen neuen Abschluss-Eintrag erstellen.
+
+## 6. Session-Ende: Summary speichern
+- Am Ende jeder produktiven Session `session_save` aufrufen.
+- Summary enthält: was wurde gemacht, getroffene Entscheidungen, offene Punkte.
+- Optional Projektname mitgeben (`project`-Parameter), um Sessions projektübergreifend filterbar zu machen.
+- Frühere Sessions können mit `session_list` (chronologisch) oder `session_search` (semantisch) abgerufen werden.

@@ -18,6 +18,9 @@ Persistentes Gedächtnis für Claude Code – stellt semantische Vektorsuche und
 | `fact_set` | Strukturierten Fakt speichern (Key-Value) |
 | `fact_get` | Einzelnen Fakt abrufen |
 | `facts_list` | Alle gespeicherten Fakten auflisten |
+| `session_save` | Session-Zusammenfassung speichern (SQLite + Vektorsuche) |
+| `session_list` | Letzte Session-Summaries chronologisch auflisten |
+| `session_search` | Semantische Suche über Session-Summaries |
 
 ## Setup
 

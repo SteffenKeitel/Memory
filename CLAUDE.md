@@ -28,10 +28,11 @@ python server.py
 
 ## Architecture
 
-`server.py` uses `FastMCP` from `mcp.server.fastmcp` to expose five tools:
+`server.py` uses `FastMCP` from `mcp.server.fastmcp` to expose eight tools:
 
-- **Vector memory** (`memory_store`, `memory_search`): ChromaDB with cosine similarity. Documents are timestamped IDs. Search returns similarity scores as `1 - distance`.
-- **Facts store** (`fact_set`, `fact_get`, `facts_list`): SQLite with a single `facts` table (key, value, updated_at). Uses upsert via `ON CONFLICT`.
+- **Vector memory** (`memory_store`, `memory_search`): ChromaDB collection `"memories"` with cosine similarity. Documents are timestamped IDs. Search returns similarity scores as `1 - distance`.
+- **Facts store** (`fact_set`, `fact_get`, `facts_list`): SQLite `facts` table (key, value, updated_at). Uses upsert via `ON CONFLICT`.
+- **Session summaries** (`session_save`, `session_list`, `session_search`): ChromaDB collection `"sessions"` + SQLite `sessions` table (id, summary, project, created_at). Stores structured session summaries, listable chronologically and searchable semantically.
 
 Data is stored relative to `cwd` at `.claude/memory/` (chroma/ + facts.db), giving per-project isolation.
 
