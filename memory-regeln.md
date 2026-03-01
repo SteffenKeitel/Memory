@@ -1,33 +1,39 @@
-# Memory (MCP Memory Server) – STRIKTE REGELN
+# Memory (MCP Memory Server) – Regeln
 
-Diese Regeln sind verbindlich und gelten in jeder Session, für jedes Projekt.
+Der Memory-Server dient als **Entscheidungs- und Planhistorie** — nicht als
+Duplikat von CLAUDE.md oder Code. Alles, was im Projekt dokumentiert ist
+(Architektur, Standards, Roadmap), gehört NICHT ins Memory.
 
-## 1. Session-Start: Immer Memory laden
-- Bei der ersten inhaltlichen Interaktion einer Session: `memory_search` mit relevanten Begriffen zum aktuellen Projekt/Thema ausführen.
-- Bei bekannten Projekten zusätzlich `facts_list` aufrufen, um gespeicherte Fakten zu prüfen.
-- Erst danach mit der eigentlichen Arbeit beginnen.
+## Was ins Memory gehört
 
-## 2. Vor jedem Plan: Memory konsultieren
-- Bevor ein Implementierungsplan erstellt wird: `memory_search` mit den relevanten Begriffen (Dateinamen, Feature-Namen, Architektur-Konzepte).
-- Frühere Entscheidungen und Erkenntnisse aus Memory in den Plan einfließen lassen.
-- Keine Architektur-Entscheidung treffen, die einer gespeicherten Entscheidung widerspricht, ohne den User darauf hinzuweisen.
+| Tool | Inhalt | Wann |
+|------|--------|------|
+| `memory_store` | Genehmigte Pläne (Ziel, Ansatz, betroffene Dateien, Entscheidungen, verworfene Alternativen) | Nach Genehmigung |
+| `memory_store` | Abschluss-Einträge (was wurde umgesetzt, was wich vom Plan ab, offene Punkte) | Nach Umsetzung |
+| `session_save` | Manuelle Session-Summaries (nur bei Bedarf — automatische Summaries werden vom SessionEnd-Hook erstellt) | Optional |
+| `fact_set` | User-Präferenzen, Workflow-Entscheidungen, wiederkehrende Anweisungen — nur wenn nicht in CLAUDE.md dokumentiert | Sofort |
 
-## 3. Bei Fragen: Erst Memory, dann Dateien
-- Wenn der User eine Frage stellt (zum Projekt, zu Entscheidungen, zu früherem Kontext): zuerst `memory_search` durchführen.
-- Nur wenn Memory keine Antwort liefert, in Dateien suchen.
+## Was NICHT ins Memory gehört
 
-## 4. Memory aktuell halten
-- **Sofort speichern** (`fact_set`): User-Präferenzen, Workflow-Entscheidungen, Tool-Vorlieben, wiederkehrende Anweisungen.
-- **Nach Abschluss speichern** (`memory_store`): Zusammenfassung abgeschlossener Features, Architektur-Änderungen, gelöste Probleme.
-- **Veraltetes korrigieren**: Wenn sich ein Fakt ändert, alten Eintrag aktualisieren oder neuen mit korrektem Stand speichern.
-- Keine Duplikate: Vor dem Speichern prüfen, ob die Information bereits vorhanden ist.
+- Projekt-Architektur, Coding-Standards, Dateistruktur (steht in CLAUDE.md)
+- Informationen, die aus dem Code oder Git-Log ersichtlich sind
+- Duplikate bereits gespeicherter Einträge
 
-## 5. Pläne immer in Memory speichern
-- Jeden genehmigten Implementierungsplan per `memory_store` speichern (komprimiert: Ziel, Ansatz, betroffene Dateien, Entscheidungen).
-- Nach Umsetzung den Plan-Eintrag mit dem Ergebnis ergänzen oder einen neuen Abschluss-Eintrag erstellen.
+## Wann Memory konsultieren
 
-## 6. Session-Ende: Summary speichern
-- Am Ende jeder produktiven Session `session_save` aufrufen.
-- Summary enthält: was wurde gemacht, getroffene Entscheidungen, offene Punkte.
-- Optional Projektname mitgeben (`project`-Parameter), um Sessions projektübergreifend filterbar zu machen.
-- Frühere Sessions können mit `session_list` (chronologisch) oder `session_search` (semantisch) abgerufen werden.
+- **Vor jedem Plan**: `memory_search` nach früheren Entscheidungen zum Thema. Keine Architektur-Entscheidung treffen, die einer gespeicherten widerspricht, ohne den User darauf hinzuweisen
+- **Bei Fragen zu früherem Kontext**: `memory_search` vor Dateisuche
+
+## Session-Summaries (AUTOMATISCH)
+
+Session-Summaries werden **automatisch** vom SessionEnd-Hook erstellt (`session_hook.py`). Der Hook liest das Transkript, ruft Claude Haiku auf und schreibt die Summary in die Memory-DB.
+
+- **Kein manueller `session_save`-Aufruf nötig** — der Hook übernimmt das
+- `session_save` kann weiterhin manuell genutzt werden, z.B. für Zwischen-Summaries bei sehr langen Sessions
+- Voraussetzung: `{cwd}/.claude/memory/` muss existieren (Projekte ohne Memory-Server werden übersprungen)
+
+## Aufräumen
+
+- **Veraltete Einträge löschen**: `memory_search` zum Finden, dann `memory_delete` mit der angezeigten ID
+- **Fakten korrigieren**: `fact_set` überschreibt bestehende Werte automatisch
+- Vor dem Speichern prüfen, ob die Information bereits vorhanden ist

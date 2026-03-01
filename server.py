@@ -91,13 +91,14 @@ def memory_search(query: str, n_results: int = 5) -> str:
         return "Keine Erinnerungen vorhanden."
     n = min(n_results, total)
     results = collection.query(query_texts=[query], n_results=n, include=["documents", "distances", "metadatas"])
+    ids = results.get("ids", [[]])[0]
     docs = results.get("documents", [[]])[0]
     distances = results.get("distances", [[]])[0]
     metadatas = results.get("metadatas", [[]])[0]
     if not docs:
         return "Keine passenden Erinnerungen gefunden."
     lines = []
-    for i, (doc, dist, meta) in enumerate(zip(docs, distances, metadatas), 1):
+    for i, (doc_id, doc, dist, meta) in enumerate(zip(ids, docs, distances, metadatas), 1):
         similarity = 1 - dist
         stored_at = meta.get("stored_at", "")
         timestamp = ""
@@ -107,8 +108,22 @@ def memory_search(query: str, n_results: int = 5) -> str:
                 timestamp = f" [{dt.strftime('%Y-%m-%d %H:%M')}]"
             except ValueError:
                 pass
-        lines.append(f"{i}. [{similarity:.0%}]{timestamp} {doc}")
+        lines.append(f"{i}. [{similarity:.0%}]{timestamp} (id={doc_id}) {doc}")
     return "\n".join(lines)
+
+
+@mcp.tool()
+def memory_delete(doc_id: str) -> str:
+    """Erinnerung anhand ihrer ID löschen.
+
+    Args:
+        doc_id: Die ID des Dokuments (aus memory_search-Ergebnissen).
+    """
+    existing = collection.get(ids=[doc_id])
+    if not existing["ids"]:
+        return f"Keine Erinnerung mit ID '{doc_id}' gefunden."
+    collection.delete(ids=[doc_id])
+    return f"Erinnerung gelöscht (id={doc_id})."
 
 
 @mcp.tool()
